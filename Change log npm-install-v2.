@@ -22,4 +22,4 @@ Leaves var_os / var_version (so you can still choose Debian/Ubuntu and versions 
 
 Prints final container IP and access URL at the end.
 
-Save this file on your Proxmox host (for example /root/npm-proxmox-docker.sh), make it executable (chmod +x npm-proxmox-docker.sh), then run it as root: ./npm-proxmox-docker.sh.
+Save this file on your Proxmox host (for example /root/npm-install-v2.sh), make it executable (chmod +x npm-install-v2.sh), then run it as root: ./npm-install-v2.sh.
