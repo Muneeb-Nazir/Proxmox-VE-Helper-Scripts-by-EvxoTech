@@ -1,0 +1,1 @@
+bash -c "$(wget -qLO - https://github.com/Muneeb-Nazir/Proxmox-VE-Helper-Scripts-by-EvxoTech/blob/5d85a07f4e031159cd573e0eae1f214eb3f7ddab/npm-install-v2.sh)"
