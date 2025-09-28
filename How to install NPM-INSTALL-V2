@@ -23,3 +23,16 @@ DB credentials are set to npm:npm (change in /opt/npm/docker-compose.yml if you 
 Data persists at /opt/npm/data and MariaDB at /opt/npm/data/mysql
 
 Access — once complete open http://<container-ip>:81. Default login (first time) is admin@example.com / changeme.
+
+--------------------------------------------------------------------------------------------------------------------
+Key Fixes:
+
+✅ Script asks for LXC root password before creating container
+
+✅ Script asks for MariaDB root password
+
+✅ Supports Debian 12 or Ubuntu 24.04
+
+✅ Uses Docker Compose with MariaDB persistence
+
+✅ Works on Proxmox 4.1 → 8.x
