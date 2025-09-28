@@ -1,1 +1,25 @@
 bash -c "$(wget -qLO - https://raw.githubusercontent.com/Muneeb-Nazir/Proxmox-VE-Helper-Scripts-by-EvxoTech/refs/heads/Scripts/npm-install-v2.sh)"
+
+Final notes & troubleshooting tips
+
+Privileged container required — this script sets CT_TYPE="1" to ensure Docker can run inside the LXC. If you change to unprivileged, Docker in LXC will fail unless you perform complex workarounds (and grant many capabilities).
+
+Network — ensure the container has network access (DNS, gateway). The script already checks connectivity during creation, but if your environment is restricted, fix container network first.
+
+Check progress — if the pct exec post-install fails:
+
+Enter container: pct enter <CTID>
+
+View /root/npm-install-inside.sh and /opt/npm/docker-compose.yml
+
+Run journalctl -u docker -b inside container to see Docker service errors
+
+Run docker ps to inspect containers and docker logs <container> for details
+
+Credentials & persistence
+
+DB credentials are set to npm:npm (change in /opt/npm/docker-compose.yml if you prefer stronger creds)
+
+Data persists at /opt/npm/data and MariaDB at /opt/npm/data/mysql
+
+Access — once complete open http://<container-ip>:81. Default login (first time) is admin@example.com / changeme.
