@@ -23,3 +23,16 @@ Leaves var_os / var_version (so you can still choose Debian/Ubuntu and versions 
 Prints final container IP and access URL at the end.
 
 Save this file on your Proxmox host (for example /root/npm-install-v2.sh), make it executable (chmod +x npm-install-v2.sh), then run it as root: ./npm-install-v2.sh.
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Key Fixes:
+
+✅ Script asks for LXC root password before creating container
+
+✅ Script asks for MariaDB root password
+
+✅ Supports Debian 12 or Ubuntu 24.04
+
+✅ Uses Docker Compose with MariaDB persistence
+
+✅ Works on Proxmox 4.1 → 8.x
