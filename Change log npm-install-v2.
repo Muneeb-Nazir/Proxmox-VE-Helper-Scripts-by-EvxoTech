@@ -1,0 +1,25 @@
+below is a fully cleaned, self-contained Proxmox LXC creation + Dockerized Nginx Proxy Manager (with MariaDB) script that:
+
+Keeps the UI & helper functions from the original build.func but overrides the version check to accept Proxmox >= 4.1 (so it supports 4.1 and newer) by doing a numeric check rather than brittle regex.
+
+Overrides the build path so it only creates the LXC and does not run the old OpenResty/pnpm flow.
+
+After LXC creation it runs a self-contained post-install inside the container that:
+
+Updates the OS,
+
+Installs Docker CE + compose plugin,
+
+Deploys jc21/mariadb-aria + jc21/nginx-proxy-manager using Docker Compose,
+
+Persists data under /opt/npm
+
+Enables Docker to start on boot.
+
+Uses a privileged container by default (recommended for running Docker reliably in an LXC).
+
+Leaves var_os / var_version (so you can still choose Debian/Ubuntu and versions via the script UI).
+
+Prints final container IP and access URL at the end.
+
+Save this file on your Proxmox host (for example /root/npm-proxmox-docker.sh), make it executable (chmod +x npm-proxmox-docker.sh), then run it as root: ./npm-proxmox-docker.sh.
