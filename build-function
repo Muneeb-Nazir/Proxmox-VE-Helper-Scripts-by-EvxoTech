@@ -1,27 +1,145 @@
-# ======================================
-#  Function: Check Proxmox Environment
-# ======================================
+#!/usr/bin/env bash
+# build.func — Proxmox LXC build helper functions
+# (to be sourced by installer scripts)
+
+# ========== Variable Utilities ==========
+variables() {
+  NSAPP=$(echo "${APP,,}" | tr -d ' ')
+  var_install="${NSAPP}-install"
+  INTEGER='^[0-9]+([.][0-9]+)?$'
+}
+
+# ========== Color & Symbols ==========
+color() {
+  YW="\033[33m"
+  BL="\033[36m"
+  RD="\033[01;31m"
+  BGN="\033[4;92m"
+  GN="\033[1;92m"
+  DGN="\033[32m"
+  CL="\033[m"
+  CM="${GN}✓${CL}"
+  CROSS="${RD}✗${CL}"
+  BFR="\r\033[K"
+  HOLD=" "
+}
+
+# ========== Error Handling & Spinner ==========
+catch_errors() {
+  set -Eeuo pipefail
+  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+}
+
+error_handler() {
+  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID > /dev/null; then
+    kill $SPINNER_PID > /dev/null
+  fi
+  printf "\e[?25h"
+  local exit_code="${?}"
+  local line_number="$1"
+  local command="$2"
+  local msg="${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL}: while executing command ${YW}${command}${CL}"
+  echo -e "\n${msg}\n"
+}
+
+spinner() {
+  local chars="/-\|"
+  local spin_i=0
+  printf "\e[?25l"
+  while true; do
+    printf "\r \e[36m%s\e[0m" "${chars:spin_i++%${#chars}:1}"
+    sleep 0.1
+  done
+}
+
+msg_info() {
+  local msg="$1"
+  echo -ne " ${HOLD} ${YW}${msg}   "
+  spinner &
+  SPINNER_PID=$!
+}
+
+msg_ok() {
+  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID > /dev/null; then
+    kill $SPINNER_PID > /dev/null
+  fi
+  printf "\e[?25h"
+  local msg="$1"
+  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
+}
+
+msg_error() {
+  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID > /dev/null; then
+    kill $SPINNER_PID > /dev/null
+  fi
+  printf "\e[?25h"
+  local msg="$1"
+  echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
+}
+
+# ========== Environment Checks ==========
+shell_check() {
+  if [[ "$(basename "$SHELL")" != "bash" ]]; then
+    clear
+    msg_error "Your default shell is not Bash. Please use Bash to run these scripts."
+    echo -e "\nExiting..."
+    sleep 2
+    exit 1
+  fi
+}
+
+root_check() {
+  if [[ "$(id -u)" -ne 0 ]]; then
+    clear
+    msg_error "Please run this script as root."
+    echo -e "\nExiting..."
+    sleep 2
+    exit 1
+  fi
+}
+
+arch_check() {
+  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
+    msg_error "This script works on x86_64 (amd64) architecture only."
+    exit 1
+  fi
+}
+
+ssh_check() {
+  if [ -n "${SSH_CLIENT:-}" ]; then
+    if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" \
+        --yesno "You are running via SSH. That might cause issues with variable handling. Continue?" 10 72; then
+      whiptail --msgbox --backtitle "Proxmox VE Helper Scripts" --title "Proceed Over SSH" \
+        "Continuing via SSH. If errors occur, try running from Proxmox shell." 10 72
+    else
+      clear
+      msg_error "Exiting due to SSH usage. Use the Proxmox shell instead."
+      exit 1
+    fi
+  fi
+}
+
+# ========== Proxmox Version Check ==========
 pve_check() {
   if ! command -v pveversion >/dev/null 2>&1; then
-    msg_error "This script must be run on a Proxmox host."
+    msg_error "This script must run on a Proxmox host."
     exit 1
   fi
 
-  local version=$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1)
+  local version
+  version=$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1)
   local major=$(echo "$version" | cut -d'.' -f1)
   local minor=$(echo "$version" | cut -d'.' -f2)
 
-  if (( major < 8 )) || (( major == 8 && minor < 1 )); then
-    msg_error "Proxmox VE version $version detected — requires 8.1 or newer."
+  if (( major < 8 )) || { (( major == 8 )) && (( minor < 1 )); }; then
+    msg_error "Detected Proxmox VE version $version — this script requires version 8.1 or newer."
     exit 1
   fi
 
   msg_ok "Compatible Proxmox VE version ${version} detected."
 }
 
-# ======================================
-#  Function: Start Installer
-# ======================================
+# ========== Installer Start Logic ==========
 install_script() {
   shell_check
   root_check
@@ -38,8 +156,8 @@ install_script() {
   header_info
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "LXC SETTINGS" \
-      --yesno "Use Default Settings?" --no-button "Advanced" 10 60); then
+        --title "LXC SETTINGS" \
+        --yesno "Use Default Settings?" --no-button "Advanced" 10 60); then
     header_info
     echo -e "${BL}Using Default Settings${CL}"
     default_settings
@@ -50,9 +168,7 @@ install_script() {
   fi
 }
 
-# ======================================
-#  Function: Ask for Root Password
-# ======================================
+# ========== Ask Root Password for Container ==========
 ask_root_password() {
   while true; do
     if ROOTPW1=$(whiptail --passwordbox "Enter root password for LXC" 8 50 --title "Set Root Password" 3>&1 1>&2 2>&3); then
