@@ -1,0 +1,76 @@
+# ======================================
+#  Function: Check Proxmox Environment
+# ======================================
+pve_check() {
+  if ! command -v pveversion >/dev/null 2>&1; then
+    msg_error "This script must be run on a Proxmox host."
+    exit 1
+  fi
+
+  local version=$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1)
+  local major=$(echo "$version" | cut -d'.' -f1)
+  local minor=$(echo "$version" | cut -d'.' -f2)
+
+  if (( major < 8 )) || (( major == 8 && minor < 1 )); then
+    msg_error "Proxmox VE version $version detected — requires 8.1 or newer."
+    exit 1
+  fi
+
+  msg_ok "Compatible Proxmox VE version ${version} detected."
+}
+
+# ======================================
+#  Function: Start Installer
+# ======================================
+install_script() {
+  shell_check
+  root_check
+  arch_check
+  ssh_check
+  pve_check
+
+  if systemctl is-active -q ping-instances.service; then
+    systemctl -q stop ping-instances.service
+  fi
+
+  NEXTID=$(pvesh get /cluster/nextid)
+  timezone=$(cat /etc/timezone)
+  header_info
+
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "LXC SETTINGS" \
+      --yesno "Use Default Settings?" --no-button "Advanced" 10 60); then
+    header_info
+    echo -e "${BL}Using Default Settings${CL}"
+    default_settings
+  else
+    header_info
+    echo -e "${RD}Using Advanced Settings${CL}"
+    advanced_settings
+  fi
+}
+
+# ======================================
+#  Function: Ask for Root Password
+# ======================================
+ask_root_password() {
+  while true; do
+    if ROOTPW1=$(whiptail --passwordbox "Enter root password for LXC" 8 50 --title "Set Root Password" 3>&1 1>&2 2>&3); then
+      if [[ -z "$ROOTPW1" ]]; then
+        whiptail --msgbox "Password cannot be empty." 8 50
+      else
+        if ROOTPW2=$(whiptail --passwordbox "Confirm root password" 8 50 --title "Confirm Password" 3>&1 1>&2 2>&3); then
+          if [[ "$ROOTPW1" == "$ROOTPW2" ]]; then
+            PW="-password $ROOTPW1"
+            msg_ok "Password set successfully."
+            break
+          else
+            whiptail --msgbox "Passwords do not match. Try again." 8 50
+          fi
+        fi
+      fi
+    else
+      exit-script
+    fi
+  done
+}
