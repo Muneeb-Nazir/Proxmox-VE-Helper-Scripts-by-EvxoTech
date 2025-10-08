@@ -14,145 +14,129 @@
 
 ---
 
-## ✨ Features
+🧠 EvxoTech — n8n + Laravel LXC Auto Installer for Proxmox 8.x
 
-✅ **Works on Proxmox VE 8.1 to 8.5+**  
-✅ **Supports Debian 11, Debian 12, and Ubuntu 24.04**  
-✅ **Automatic password setup for root user**  
-✅ **Installs and configures n8n automatically**  
-✅ **AI Agent-ready (Hugging Face, OpenAI, Anthropic, Ollama)**  
-✅ **Optional SSL setup**  
-✅ **Multi-user ready structure (future admin panel)**  
-✅ **Simple and clean interface — no external dependencies**
+This script automates the full setup of a n8n automation platform with optional Laravel Admin Panel + NGINX + MariaDB + PHP-FPM inside a single Proxmox LXC container — all in one command.
 
----
+It’s built on tteck’s Proxmox Helper Framework
+ and updated for Proxmox VE 8.1 → 8.5+.
 
-## 🧩 Prerequisites
+🚀 Features
 
-- Proxmox VE **v8.1 or higher**
-- Internet connection for downloading templates
-- Storage pool (e.g., `local-lvm`) available
-- Root shell access to Proxmox host
+✅ Auto-detects storage and bridge
+✅ Supports Proxmox VE 8.1 → 8.5+ (bypass built-in restrictions)
+✅ Installs n8n via Node.js + npm
+✅ Optional Laravel + NGINX stack
+✅ MariaDB + PHP + Composer preinstalled
+✅ Automatic systemd service for n8n
+✅ Optional HTTPS via Let’s Encrypt (future extension)
+✅ No spinner or unbound variable errors
+✅ Clean colorized installer output
 
----
+🧩 Stack Components
+Component	Purpose	Notes
+n8n	Workflow automation & AI integration platform	Installed globally via npm install -g n8n
+Laravel	PHP admin panel or API backend	Optional (installed in /var/www/laravel-app)
+NGINX	Web server for Laravel	Auto-configured
+MariaDB	Database for Laravel / n8n	Local service
+PHP-FPM	FastCGI for Laravel	Installed & enabled
+Node.js / npm	Core runtime for n8n	Installed via apt or NodeSource
+Systemd Service	Persistent n8n daemon	/etc/systemd/system/n8n.service
+⚙️ Usage
+1️⃣ Clone the repo or download script
+cd /root/scripts
+wget https://raw.githubusercontent.com/Muneeb-Nazir/Proxmox-VE-Helper-Scripts-by-EvxoTech/main/n8n-installer-v7.sh
+chmod +x n8n-installer-v7.sh
 
-## ⚙️ Installation
+2️⃣ Run the script as root in the Proxmox shell
+./n8n-proxmox-v7.sh
 
-1. **Download the script:**
-   ```bash
-   wget https://raw.githubusercontent.com/Muneeb-Nazir/Proxmox-VE-Helper-Scripts-by-EvxoTech/main/n8n-proxmox-v2.sh
-   chmod +x n8n-proxmox-v2.sh
-````
+3️⃣ Follow the prompts
 
-2. **Run the installer:**
+The installer will ask for:
 
-   ```bash
-   ./n8n-proxmox-v2.sh
-   ```
+Storage (auto-detected from your Proxmox pools)
 
-3. **Follow the prompts:**
+Bridge (default vmbr0)
 
-   * Enter your **LXC root password**
-   * Select your preferred **base OS**
-   * Choose an **AI backend** (optional)
-   * Decide whether to **enable SSL setup**
+Container ID (next available by default)
 
----
+Disk size (e.g. 20G)
 
-## 🧠 AI Integration Options
+Root password for the container
 
-During setup, you’ll be prompted to choose an AI backend:
+Option to install Laravel + Nginx
 
-| Option                     | Description                     |
-| -------------------------- | ------------------------------- |
-| **1️⃣ Hugging Face**       | Default and free-friendly       |
-| **2️⃣ OpenAI / Anthropic** | Cloud-hosted premium LLM APIs   |
-| **3️⃣ Ollama**             | Self-hosted local LLM engine    |
-| **4️⃣ Skip**               | Continue without AI integration |
+Optional AI provider integration (future-ready)
 
----
+🖥️ Example Output
+⚙️  Compatible Proxmox VE version 8.4 detected (bypass active)
+🔄 Loading installer environment...
+✅ Creating LXC Container ID 102
+🧩 Installing packages inside container...
+✅ n8n service installed and started
+✅ Laravel installed in /var/www/laravel-app
 
-## 🔒 SSL Setup (Optional)
+🌐 Access URLs
+Service	URL	Notes
+n8n	http://<container-ip>:5678	Web automation UI
+Laravel App	http://<container-ip>/	PHP admin dashboard
+MariaDB	localhost:3306	Accessible internally
+SSH / Shell	pct enter <ctid>	Manage directly
+🧠 Example: Systemd Service (inside container)
+[Unit]
+Description=n8n daemon
+After=network.target
 
-If you enable SSL:
+[Service]
+ExecStart=/usr/bin/n8n
+Restart=always
+User=root
+WorkingDirectory=/root
+Environment=GENERIC_TIMEZONE=Asia/Karachi
 
-* The script installs **Certbot**
-* You’ll be prompted to set DNS/domain configuration manually
-  *(ideal for Cloudflare + NGINX Reverse Proxy setups)*
+[Install]
+WantedBy=multi-user.target
 
-If skipped, n8n will remain accessible via HTTP.
+🛠️ Maintenance
+Update n8n
+pct exec <ctid> -- bash -c "npm update -g n8n && systemctl restart n8n"
 
----
+Update Laravel
+pct exec <ctid> -- bash -c "cd /var/www/laravel-app && git pull && composer update"
 
-## 🌍 Access Information
+Backup Container
+vzdump <ctid> --compress zstd
 
-After installation completes:
+🔒 Optional SSL via Let’s Encrypt (future)
 
-| Item              | Description                  |
-| ----------------- | ---------------------------- |
-| **Web Access**    | `http://<container_ip>:5678` |
-| **Root Password** | As entered during setup      |
-| **AI Backend**    | As selected                  |
-| **Container ID**  | Auto-assigned by Proxmox     |
-| **OS Version**    | Debian/Ubuntu as chosen      |
+You can easily extend your install script to include:
 
----
+apt install certbot python3-certbot-nginx -y
+certbot --nginx
 
-## 💡 Example Usage
 
-### View running container
+This will auto-provision HTTPS for both Laravel and n8n.
 
-```bash
-pct list
-```
+🧩 Credits
 
-### Restart n8n service
+EvxoTech — Installer logic, Laravel integration, and AI backend hooks
 
-```bash
-pct exec <CTID> -- systemctl restart n8n
-```
+tteck — Original Proxmox LXC Helper Framework
 
-### Update n8n
+n8n.io — Open Source Automation Platform
 
-```bash
-pct exec <CTID> -- npm update -g n8n
-```
+Laravel — PHP framework powering the backend
 
----
+🧾 License
 
-## 🧩 Future Roadmap
+This script is released under the MIT License — feel free to use, modify, and distribute with attribution.
 
-* [ ] Web Admin UI for n8n flow management
-* [ ] Built-in reverse proxy (NGINX Manager)
-* [ ] Auto SSL via Let’s Encrypt
-* [ ] Full AI Agent integration (Lindy-style orchestration)
+💬 Support
 
----
+For issues or feature requests:
 
-## 🧑‍💻 Developer Notes
+Open a GitHub issue on EvxoTech’s Proxmox Helper Scripts Repo
 
-* Written in **Bash**
-* Follows **Proxmox LXC best practices**
-* Lightweight, stateless, and modular
-* Can be extended for **Nextcloud**, **LLM WebUI**, or **license management systems**
-
----
-
-## 📜 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-### 💬 Author
-
-**EvxoTech (Muneeb Nazir)**
-💻 GitHub: [Muneeb-Nazir](https://github.com/Muneeb-Nazir)
-🌐 Website: *Coming soon...*
-🚀 “Automation meets Intelligence — the EvxoTech way.”
-
-```
-
----
-
+Or ping in your DevOps team’s internal Slack/Discord
 
